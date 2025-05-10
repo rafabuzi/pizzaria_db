@@ -1,0 +1,132 @@
+-- Função para popular tabela de clientes
+CREATE OR REPLACE FUNCTION popular_clientes(qtd INT DEFAULT 50)
+RETURNS VOID AS $$
+DECLARE
+    i INT;
+    nomes TEXT[] := ARRAY['João', 'Maria', 'Pedro', 'Ana', 'Lucas', 'Juliana', 'Carlos', 'Fernanda', 'Mateus', 'Larissa'];
+    sobrenomes TEXT[] := ARRAY['Silva', 'Souza', 'Lima', 'Oliveira', 'Costa', 'Ferreira', 'Ramos', 'Almeida'];
+    bairros TEXT[] := ARRAY['Centro', 'Vila Prado', 'Vila Nery', 'Jardim Tangará', 'Parque Faber'];
+    ruas TEXT[] := ARRAY[
+        'Rua Nove de Julho', 'Rua Episcopal', 'Avenida São Carlos', 'Rua Conde do Pinhal',
+        'Rua Riachuelo', 'Rua Sete de Setembro', 'Avenida Teixeira de Barros', 'Rua Monteiro Lobato'
+    ];
+    ceps TEXT[] := ARRAY['13560-042', '13560-049', '13560-001', '13560-648', '13560-110', '13560-180', '13574-033', '13569-290'];
+    nome_completo TEXT;
+BEGIN
+    FOR i IN 1..qtd LOOP
+        nome_completo := nomes[1 + floor(random()*array_length(nomes,1))::int] || ' ' || sobrenomes[1 + floor(random()*array_length(sobrenomes,1))::int];
+        INSERT INTO gerenciador_de_clientes_cliente (nome, telefone, cep, logradouro, numero, complemento, bairro)
+        VALUES (
+            nome_completo,
+            '(16) 9' || lpad((trunc(random()*100000000)::int)::text, 8, '0'),
+            ceps[1 + floor(random()*array_length(ceps,1))::int],
+            ruas[1 + floor(random()*array_length(ruas,1))::int],
+            (100 + floor(random() * 900))::int,
+            NULL,
+            bairros[1 + floor(random()*array_length(bairros,1))::int]
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para popular tabela de funcionários
+CREATE OR REPLACE FUNCTION popular_funcionarios(qtd INT DEFAULT 10)
+RETURNS VOID AS $$
+DECLARE
+    i INT;
+    nomes TEXT[] := ARRAY['João', 'Carla', 'Eduardo', 'Beatriz', 'Tiago', 'Marina'];
+    sobrenomes TEXT[] := ARRAY['Silva', 'Souza', 'Lima', 'Costa'];
+    nome_completo TEXT;
+BEGIN
+    FOR i IN 1..qtd LOOP
+        nome_completo := nomes[1 + floor(random()*array_length(nomes,1))::int] || ' ' || sobrenomes[1 + floor(random()*array_length(sobrenomes,1))::int];
+        INSERT INTO gerenciador_de_funcionarios_funcionario (nome, cpf, email, usuario, senha)
+        VALUES (
+            nome_completo,
+            lpad((trunc(random()*100000000000)::int)::text, 11, '0'),
+            lower(replace(nome_completo, ' ', '.')) || '@empresa.com',
+            lower(replace(nome_completo, ' ', '')) || i,
+            'senha123'
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para popular tabela de motoboys
+CREATE OR REPLACE FUNCTION popular_motoboys(qtd INT DEFAULT 5)
+RETURNS VOID AS $$
+DECLARE
+    i INT;
+    nome TEXT;
+BEGIN
+    FOR i IN 1..qtd LOOP
+        nome := 'Motoboy ' || i;
+        INSERT INTO gerenciador_de_motoboys_motoboy (nome, telefone, placa, funcionario_id, senha, usuario)
+        VALUES (
+            nome,
+            '(16) 9' || lpad((trunc(random()*100000000)::int)::text, 8, '0'),
+            chr(65 + trunc(random()*26)::int) || chr(65 + trunc(random()*26)::int) || chr(65 + trunc(random()*26)::int) || '-' || lpad((trunc(random()*10000)::int)::text, 4, '0'),
+            i,
+            'senha123',
+            lower(replace(nome, ' ', ''))
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para popular tabela de produtos
+CREATE OR REPLACE FUNCTION popular_produtos()
+RETURNS VOID AS $$
+DECLARE
+    sabores TEXT[] := ARRAY[
+        'Mussarela', 'Calabresa', 'Portuguesa', 'Frango com Catupiry',
+        'Marguerita', 'Quatro Queijos', 'Pepperoni', 'Napolitana',
+        'Bacon', 'Vegetariana'
+    ];
+    i INT;
+BEGIN
+    FOR i IN 1..array_length(sabores, 1) LOOP
+        INSERT INTO gerenciador_de_produtos_produto (nome, preco)
+        VALUES (
+            sabores[i],
+            round(30 + random()*20, 2)  -- Preço entre R$30,00 e R$50,00
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para popular tabela de pedidos
+CREATE OR REPLACE FUNCTION popular_pedidos(qtd INT DEFAULT 20)
+RETURNS VOID AS $$
+DECLARE
+    i INT;
+    dt TIMESTAMP;
+    status_array TEXT[] := ARRAY['pendente', 'em_andamento', 'finalizado', 'cancelado'];
+    cliente_count INT;
+    funcionario_count INT;
+    motoboy_count INT;
+BEGIN
+    SELECT COUNT(*) INTO cliente_count FROM gerenciador_de_clientes_cliente;
+    SELECT COUNT(*) INTO funcionario_count FROM gerenciador_de_funcionarios_funcionario;
+    SELECT COUNT(*) INTO motoboy_count FROM gerenciador_de_motoboys_motoboy;
+
+    FOR i IN 1..qtd LOOP
+        dt := NOW() - (trunc(random() * 30) || ' days')::INTERVAL;
+        INSERT INTO gerenciador_de_pedidos_pedido (
+            data_hora_inicio,
+            data_hora_finalizacao,
+            status,
+            cliente_id,
+            funcionario_id,
+            motoboy_id
+        ) VALUES (
+            dt,
+            dt + (interval '30 minutes' * trunc(random() * 5)),
+            status_array[1 + floor(random() * array_length(status_array, 1))::int],
+            1 + floor(random() * cliente_count)::int,
+            1 + floor(random() * funcionario_count)::int,
+            1 + floor(random() * motoboy_count)::int
+        );
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;

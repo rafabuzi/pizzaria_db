@@ -1,0 +1,7 @@
+-- Chamada das funções:
+
+SELECT popular_clientes();
+SELECT popular_funcionarios();
+SELECT popular_motoboys();
+SELECT popular_produtos();
+SELECT popular_pedidos();

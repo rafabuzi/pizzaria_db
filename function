@@ -5,25 +5,39 @@ DECLARE
     i INT;
     nomes TEXT[] := ARRAY['João', 'Maria', 'Pedro', 'Ana', 'Lucas', 'Juliana', 'Carlos', 'Fernanda', 'Mateus', 'Larissa'];
     sobrenomes TEXT[] := ARRAY['Silva', 'Souza', 'Lima', 'Oliveira', 'Costa', 'Ferreira', 'Ramos', 'Almeida'];
-    bairros TEXT[] := ARRAY['Centro', 'Vila Prado', 'Vila Nery', 'Jardim Tangará', 'Parque Faber'];
-    ruas TEXT[] := ARRAY[
-        'Rua Nove de Julho', 'Rua Episcopal', 'Avenida São Carlos', 'Rua Conde do Pinhal',
-        'Rua Riachuelo', 'Rua Sete de Setembro', 'Avenida Teixeira de Barros', 'Rua Monteiro Lobato'
+    enderecos TEXT[][] := ARRAY[
+        ARRAY['Rua Nove de Julho', 'Centro', '13560-042'],
+        ARRAY['Rua Episcopal', 'Centro', '13560-049'],
+        ARRAY['Avenida São Carlos', 'Centro', '13560-001'],
+        ARRAY['Rua Conde do Pinhal', 'Jardim São Carlos', '13560-648'],
+        ARRAY['Rua Riachuelo', 'Centro', '13560-110'],
+        ARRAY['Rua Sete de Setembro', 'Centro', '13560-180'],
+        ARRAY['Avenida Teixeira de Barros', 'Vila Prado', '13574-033'],
+        ARRAY['Avenida Sallum', 'Vila Prado', '13574-040'],
+        ARRAY['Rua Quintino Bocaiúva', 'Vila Boa Vista', '13574-003'],
+        ARRAY['Rua Marechal Deodoro', 'Centro', '13560-200'],
+        ARRAY['Rua Monteiro Lobato', 'Jardim Brasil', '13569-290'],
+        ARRAY['Rua Germano Fehr', 'Vila Faria', '13569-005'],
+        ARRAY['Rua Francisco Ferreira', 'Vila Faria', '13569-004'],
+        ARRAY['Rua Abel Giongo', 'Vila Faria', '13569-003'],
+        ARRAY['Rua Victório Bonucci', 'Jardim Tangará', '13568-110']
     ];
-    ceps TEXT[] := ARRAY['13560-042', '13560-049', '13560-001', '13560-648', '13560-110', '13560-180', '13574-033', '13569-290'];
     nome_completo TEXT;
+    endereco_idx INT;
 BEGIN
     FOR i IN 1..qtd LOOP
         nome_completo := nomes[1 + floor(random()*array_length(nomes,1))::int] || ' ' || sobrenomes[1 + floor(random()*array_length(sobrenomes,1))::int];
+        endereco_idx := 1 + floor(random() * array_length(enderecos,1))::int;
+
         INSERT INTO gerenciador_de_clientes_cliente (nome, telefone, cep, logradouro, numero, complemento, bairro)
         VALUES (
             nome_completo,
             '(16) 9' || lpad((trunc(random()*100000000)::int)::text, 8, '0'),
-            ceps[1 + floor(random()*array_length(ceps,1))::int],
-            ruas[1 + floor(random()*array_length(ruas,1))::int],
+            enderecos[endereco_idx][3],
+            enderecos[endereco_idx][1],
             (100 + floor(random() * 900))::int,
             NULL,
-            bairros[1 + floor(random()*array_length(bairros,1))::int]
+            enderecos[endereco_idx][2]
         );
     END LOOP;
 END;

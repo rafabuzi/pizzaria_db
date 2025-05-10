@@ -1,0 +1,121 @@
+CREATE OR REPLACE FUNCTION popular_funcionarios_e_motoboys(
+    qtd_funcionarios INT,
+    qtd_motoboys INT,
+    percentual_motoboys DECIMAL DEFAULT 0.3
+)
+RETURNS TEXT AS $$
+DECLARE
+    nomes TEXT[] := ARRAY['Carlos','Felipe','Ricardo','Lucas','Márcio','Pedro','Roberto','Paulo','Thiago','Vitor'];
+    sobrenomes TEXT[] := ARRAY['Silva','Santos','Oliveira','Pereira','Costa','Rodrigues','Almeida','Nascimento','Fernandes','Lima'];
+    telefone TEXT;
+    email TEXT;
+    usuario TEXT;
+    senha TEXT := 'senha123';
+    i INT;
+    novo_id INT;
+    motoboy_count INT := 0;
+    funcionarios_ids INT[] := '{}';
+    is_motoboy BOOLEAN;
+    funcionario_para_motoboy RECORD;
+BEGIN
+    -- Validar parâmetros
+    IF qtd_motoboys > qtd_funcionarios THEN
+        RETURN 'Erro: Quantidade de motoboys não pode ser maior que quantidade de funcionários';
+    END IF;
+    
+    -- Popular tabela de funcionários
+    FOR i IN 1..qtd_funcionarios LOOP
+        -- Gerar dados fictícios
+        telefone := '1' || lpad((floor(random() * 999999999))::text, 9, '0');
+        email := lower(nomes[1 + (i % array_length(nomes, 1))]) || 
+                lower(sobrenomes[1 + (i % array_length(sobrenomes, 1))]) || 
+                (i%100) || '@empresa.com';
+        usuario := 'func' || i;
+        
+        -- Decidir se será motoboy (até atingir qtd_motoboys)
+        is_motoboy := (motoboy_count < qtd_motoboys) AND (random() < percentual_motoboys);
+        
+        -- Inserir funcionário
+        INSERT INTO gerenciador_de_funcionarios_funcionario (
+            nome_completo, 
+            telefone, 
+            email, 
+            data_admissao, 
+            usuario, 
+            senha,
+            eh_motoboy
+        ) VALUES (
+            nomes[1 + (i % array_length(nomes, 1))] || ' ' || sobrenomes[1 + (i % array_length(sobrenomes, 1))],
+            telefone,
+            email,
+            CURRENT_DATE - (i % 365) * INTERVAL '1 day',
+            usuario,
+            senha,
+            is_motoboy
+        ) RETURNING id INTO novo_id;
+        
+        -- Se for motoboy, inserir na tabela de motoboys
+        IF is_motoboy THEN
+            INSERT INTO gerenciador_de_motoboys_motoboy (
+                nome, 
+                telefone, 
+                placa, 
+                funcionario_id, 
+                usuario, 
+                senha
+            ) VALUES (
+                nomes[1 + (i % array_length(nomes, 1))] || ' ' || sobrenomes[1 + (i % array_length(sobrenomes, 1))],
+                telefone,
+                'ABC' || lpad((floor(random() * 10000))::text, 4, '0'),
+                novo_id,
+                'motoboy' || motoboy_count + 1,
+                senha
+            );
+            
+            motoboy_count := motoboy_count + 1;
+            funcionarios_ids := array_append(funcionarios_ids, novo_id);
+        END IF;
+    END LOOP;
+    
+    -- Se não atingiu a quantidade necessária de motoboys
+    IF motoboy_count < qtd_motoboys THEN
+        FOR j IN 1..(qtd_motoboys - motoboy_count) LOOP
+            -- Encontrar um funcionário que não é motoboy
+            SELECT id, nome_completo, telefone INTO funcionario_para_motoboy
+            FROM gerenciador_de_funcionarios_funcionario
+            WHERE eh_motoboy = FALSE
+            LIMIT 1;
+            
+            IF NOT FOUND THEN
+                EXIT; -- Sai do loop se não encontrar mais funcionários
+            END IF;
+            
+            -- Atualizar funcionário para motoboy
+            UPDATE gerenciador_de_funcionarios_funcionario
+            SET eh_motoboy = TRUE
+            WHERE id = funcionario_para_motoboy.id;
+            
+            -- Inserir na tabela de motoboys
+            INSERT INTO gerenciador_de_motoboys_motoboy (
+                nome, 
+                telefone, 
+                placa, 
+                funcionario_id, 
+                usuario, 
+                senha
+            ) VALUES (
+                funcionario_para_motoboy.nome_completo,
+                funcionario_para_motoboy.telefone,
+                'ABC' || lpad((floor(random() * 10000))::text, 4, '0'),
+                funcionario_para_motoboy.id,
+                'motoboy' || (motoboy_count + j),
+                senha
+            );
+            
+            motoboy_count := motoboy_count + 1;
+        END LOOP;
+    END IF;
+    
+    RETURN 'Sucesso: ' || qtd_funcionarios || ' funcionários criados, sendo ' || motoboy_count || ' motoboys';
+END;
+$$ LANGUAGE plpgsql;

@@ -1,12 +1,12 @@
 -- Chamada das funções:
 
 SELECT popular_clientes(100); --colocar entre () o numero que quiser
-SELECT popular_funcionarios(); --idem
-SELECT popular_motoboys(); -- idem
+
 SELECT popular_produtos(); --esse não precisa de numero
-SELECT popular_pedidos(); 
+SELECT popular_pedidos(100); 
 
-
+-- Criar 20 funcionários, sendo 5 motoboys
+SELECT popular_funcionarios_e_motoboys(20, 5);
 
 -- Criar 15 funcionários, sendo 5 motoboys
 SELECT popular_funcionarios_e_motoboys(15, 5);

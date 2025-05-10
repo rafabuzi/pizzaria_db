@@ -1,0 +1,65 @@
+DROP FUNCTION IF EXISTS popular_pedidos(integer);
+
+CREATE OR REPLACE FUNCTION popular_pedidos(qtd_pedidos INT)
+RETURNS TEXT AS $$
+DECLARE
+    i INT;
+    cliente_id INT;
+    funcionario_id INT;
+    motoboy_id INT;
+    pedido_id INT;
+    status_pedido TEXT;
+    status_opcoes TEXT[] := ARRAY['em_andamento', 'entregue', 'cancelado'];
+    data_inicio TIMESTAMP;
+    data_fim TIMESTAMP;
+    produto_id INT;
+    produtos_disponiveis INT[];
+BEGIN
+    -- Obter todos os IDs de produtos disponíveis
+    SELECT array_agg(id) INTO produtos_disponiveis FROM gerenciador_de_produtos_produto;
+
+    FOR i IN 1..qtd_pedidos LOOP
+        -- Escolher IDs aleatórios
+        SELECT id INTO cliente_id FROM gerenciador_de_clientes_cliente ORDER BY random() LIMIT 1;
+        SELECT id INTO funcionario_id FROM gerenciador_de_funcionarios_funcionario ORDER BY random() LIMIT 1;
+        SELECT id INTO motoboy_id FROM gerenciador_de_motoboys_motoboy ORDER BY random() LIMIT 1;
+
+        -- Escolher status aleatório
+        status_pedido := status_opcoes[(1 + floor(random() * 3))::int];
+
+        -- Gerar data aleatória para início
+        data_inicio := now() - (interval '30 days') * random();
+
+        IF status_pedido = 'em_andamento' THEN
+            data_fim := NULL;
+        ELSE
+            data_fim := data_inicio + (interval '1 hour') * (1 + random() * 48); -- até 2 dias depois
+        END IF;
+
+        -- Criar pedido
+        INSERT INTO gerenciador_de_pedidos_pedido (
+            data_hora_inicio,
+            data_hora_finalizacao,
+            cliente_id,
+            funcionario_id,
+            motoboy_id,
+            status
+        ) VALUES (
+            data_inicio,
+            data_fim,
+            cliente_id,
+            funcionario_id,
+            motoboy_id,
+            status_pedido
+        ) RETURNING id INTO pedido_id;
+
+        -- Associar de 1 a 3 produtos aleatórios ao pedido
+        FOR produto_id IN SELECT unnest(produtos_disponiveis) ORDER BY random() LIMIT (1 + floor(random() * 3))::int LOOP
+            INSERT INTO gerenciador_de_pedidos_pedido_produtos (pedido_id, produto_id)
+            VALUES (pedido_id, produto_id);
+        END LOOP;
+    END LOOP;
+
+    RETURN 'Pedidos gerados com sucesso: ' || qtd_pedidos;
+END;
+$$ LANGUAGE plpgsql;

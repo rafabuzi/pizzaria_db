@@ -1,0 +1,33 @@
+-- Função para popular tabela de produtos
+DROP FUNCTION IF EXISTS popular_produtos();
+
+CREATE OR REPLACE FUNCTION popular_produtos()
+RETURNS void AS $$
+DECLARE
+    sabores TEXT[] := ARRAY[
+        'Mussarela',
+        'Calabresa',
+        'Frango com Catupiry',
+        'Portuguesa',
+        'Marguerita',
+        'Quatro Queijos',
+        'Atum',
+        'Bacon',
+        'Brócolis',
+        'Napolitana'
+    ];
+    i INT;
+    preco NUMERIC(10,2);
+BEGIN
+    FOR i IN 1..array_length(sabores, 1) LOOP
+        preco := round((25 + random() * 20)::numeric, 2); 
+
+        INSERT INTO gerenciador_de_produtos_produto (nome, preco)
+        VALUES (
+            sabores[i],
+            preco
+        ) ON CONFLICT DO NOTHING;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+

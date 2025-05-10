@@ -5,3 +5,9 @@ SELECT popular_funcionarios(); --idem
 SELECT popular_motoboys(); -- idem
 SELECT popular_produtos(); --esse não precisa de numero
 SELECT popular_pedidos(); 
+
+
+
+-- Criar 15 funcionários, sendo 5 motoboys
+SELECT popular_funcionarios_e_motoboys(15, 5);
+
